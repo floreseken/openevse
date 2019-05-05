@@ -603,10 +603,6 @@ prog_char g_psSelfTest[] PROGMEM = "Self Test";
 prog_char g_psAutoDetect[] PROGMEM = "Auto Detect";
 prog_char g_psLevel1[] PROGMEM = "Svc Level: L1";
 prog_char g_psLevel2[] PROGMEM = "Svc Level: L2";
-//prog_char g_psStuckRelay[] PROGMEM = "--Stuck Relay--";
-//prog_char g_psEarthGround[] PROGMEM = "--Earth Ground--";
-//prog_char g_psTestPassed[] PROGMEM = "Test Passed";
-//prog_char g_psTestFailed[] PROGMEM = "TEST FAILED";
 #endif // ADVPWR
 prog_char g_psEvseError[] PROGMEM =  "EVSE ERROR";
 prog_char g_psVentReq[] PROGMEM = "VENT REQUIRED";
@@ -1158,46 +1154,6 @@ int J1772Pilot::SetPWM(int amps)
     // invalid amps
     return 1;
   }
-/* old code
-  float duty = 0.0;
-  float famps = (float) amps;
-  if ((amps >= 6) && (amps < 51)) {
-    // duty cycle in %
-    duty = famps / 0.6;
-  }
-  else if ((amps > 51) && (amps < 80)) {
-    duty = (famps / 2.5) + 64;
-  }
-  else if (amps == 80) {
-    duty = 96;
-  }
-
-  if (duty) {
-    // Timer1 initialization:
-    // 16MHz / 64 / (OCR1A+1) / 2 on digital 9
-    // 16MHz / 64 / (OCR1A+1) on digital 10
-    // 1KHz variable duty cycle on digital 10, 500Hz fixed 50% on digital 9
-    // pin 10 duty cycle = (OCR1B+1)/(OCR1A+1)
-    uint8_t oldSREG = SREG;
-    cli();
-
-    TCCR1A = _BV(COM1A0) | _BV(COM1B1) | _BV(WGM11) | _BV(WGM10);
-    TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS11) | _BV(CS10);
-    OCR1A = 249;
-
-    // 10% = 24 , 96% = 239
-    OCR1B = (int)((2.5 * duty) - 1.0);
-
-    SREG = oldSREG;
-
-    m_State = PILOT_STATE_PWM;
-    return 0;
-  }
-  else { // !duty
-    // invalid amps
-    return 1;
-  }
-*/
 }
 
 //-- end J1772Pilot
@@ -1383,22 +1339,6 @@ uint8_t J1772EVSEController::doPost()
   
 #endif //Adafruit RGB LCD 
 
-  //  PS1state = digitalRead(ACLINE1_PIN); //STUCK RELAY test read AC voltage with Relay Open 
-  //  PS2state = digitalRead(ACLINE2_PIN); //STUCK RELAY test read AC voltage with Relay Open
-
-//  if ((PS1state == LOW) || (PS2state == LOW)) {   // If AC voltage is present (LOW) than the relay is stuck
-//    m_Pilot.SetState(PILOT_STATE_N12);
-// #ifdef LCD16X2 //Adafruit RGB LCD
-//    g_OBD.LcdSetBacklightColor(RED);
-//    g_OBD.LcdMsg_P(g_psStuckRelay,g_psTestFailed);
-// #endif  //Adafruit RGB LCD
-//  } 
-//  else {
-// #ifdef LCD16X2 //Adafruit RGB LCD
-//    g_OBD.LcdMsg_P(g_psStuckRelay,g_psTestPassed);
-//    delay(1000);
-// #endif //Adafruit RGB LCD
-  
   if (AutoSvcLevelEnabled()) {
     int reading = analogRead(VOLT_PIN); //read pilot
     m_Pilot.SetState(PILOT_STATE_N12);
@@ -1408,18 +1348,6 @@ uint8_t J1772EVSEController::doPost()
       PS1state = digitalRead(ACLINE1_PIN);
       PS2state = digitalRead(ACLINE2_PIN);
       digitalWrite(CHARGING_PIN, LOW);
-//      if ((PS1state == HIGH) && (PS2state == HIGH)) {     
-	// m_EvseState = EVSE_STATE_NO_GROUND;
-//  #ifdef LCD16X2 //Adafruit RGB LCD
-//	g_OBD.LcdSetBacklightColor(RED); 
-//	g_OBD.LcdMsg_P(g_psEarthGround,g_psTestFailed);
-//  #endif  //Adafruit RGB LCD
-//      } 
-//      else {
-//   #ifdef LCD16X2 //Adafruit RGB LCD
-//	g_OBD.LcdMsg_P(g_psEarthGround,g_psTestPassed);
-//	delay(1000);
-//   #endif  //Adafruit RGB LCD
 
 	if ((PS1state == LOW) && (PS2state == LOW)) {  //L2   
 #ifdef LCD16X2 //Adafruit RGB LCD
