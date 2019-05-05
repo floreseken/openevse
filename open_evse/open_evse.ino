@@ -109,8 +109,7 @@ const char VERSTR[] PROGMEM = "1.0.0";
 #define GREEN 0x2
 #define BLUE 0x6
 
-
-
+#define SVC_LVL_MNU_ITEMCNT 2
 
 #define BTN_PIN A3 // button sensing pin
 #define BTN_PRESS_SHORT 100  // ms
@@ -150,7 +149,7 @@ public:
 #endif // SERIALCLI
 
 #ifdef LCD16X2
-char *g_BlankLine = "                ";
+const char *g_BlankLine = "                ";
 #endif // LCD16X2
 
 class OnboardDisplay 
@@ -375,7 +374,7 @@ public:
 typedef enum {MS_NONE,MS_SETUP,MS_SVC_LEVEL,MS_MAX_CURRENT,MS_RESET} MENU_STATE;
 class Menu {
 public:
-  char *m_Title;
+  const char *m_Title;
   uint8_t m_CurIdx;
   
   void init(const char *firstitem);
@@ -1560,7 +1559,7 @@ Menu *MaxCurrentMenu::Select()
   return &g_SetupMenu;
 }
 
-char *g_YesNoMenuItems[] = {"Yes","No"};
+const char *g_YesNoMenuItems[] = {"Yes","No"};
 DiodeChkMenu::DiodeChkMenu()
 {
   m_Title = g_psDiodeCheck;
