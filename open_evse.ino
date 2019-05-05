@@ -41,8 +41,6 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 // enable watchdog timer
 //#define WATCHDOG
 
-// GFI support
-#define GFI
 
 // serial port command line
 #define SERIALCLI
@@ -52,9 +50,6 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 
 // Adafruit LCD backpack in I2C mode
 #define I2CLCD
-
-// Advanced Powersupply... Ground check, stuck relay, L1/L2 detection.
-#define ADVPWR
 
 // single button menus (needs LCD enabled)
 // connect an SPST button between BTN_PIN and GND via a 2K resistor or enable ADAFRUIT_BTN to use the 
@@ -71,8 +66,6 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 #endif // RGBLCD
 #endif // BTN_MENU
 
-// for stability testing - shorter timeout/higher retry count
-//#define GFI_TESTING
 
 //-- end features
 
@@ -118,22 +111,6 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 // must transition to state A from contacts closed in < 100ms according to spec
 // but Leaf sometimes bounces from 3->1 so we will debounce it a little anyway
 #define DELAY_STATE_TRANSITION_A 25
-
-// for ADVPWR
-#define GROUND_CHK_DELAY  1000 // delay after charging started to test, ms
-#define STUCK_RELAY_DELAY 1000 // delay after charging opened to test, ms
-
-#ifdef GFI
-#define GFI_INTERRUPT 0 // interrupt number 0 = D2, 1 = D3
-
-#ifdef GFI_TESTING
-#define GFI_TIMEOUT ((unsigned long)(15*1000))
-#define GFI_RETRY_COUNT  255
-#else // !GFI_TESTING
-#define GFI_TIMEOUT ((unsigned long)(15*60000)) // 15*60*1000 doesn't work. go figure
-#define GFI_RETRY_COUNT  3
-#endif // GFI_TESTING
-#endif // GFI
 
 // for RGBLCD
 #define RED 0x1
@@ -259,19 +236,6 @@ public:
   void Update();
 };
 
-#ifdef GFI
-class Gfi {
- uint8_t m_GfiFault;
-public:
-  Gfi() {}
-  void Init();
-  void Reset();
-  void SetFault() { m_GfiFault = 1; }
-  uint8_t Fault() { return m_GfiFault; }
-  
-};
-#endif // GFI
-
 
 typedef enum {
   PILOT_STATE_P12,PILOT_STATE_PWM,PILOT_STATE_N12} 
@@ -335,22 +299,11 @@ typedef struct calibdata {
 // J1772EVSEController volatile m_bVFlags bits - not saved to EEPROM
 #define ECVF_NOGND_TRIPPED      0x20 // no ground has tripped at least once
 #define ECVF_CHARGING_ON        0x40 // charging relay is closed
-#define ECVF_GFI_TRIPPED        0x80 // gfi has tripped at least once
 #define ECVF_DEFAULT            0x00
 
 class J1772EVSEController {
   J1772Pilot m_Pilot;
-#ifdef GFI
-  Gfi m_Gfi;
-  unsigned long m_GfiTimeout;
-  unsigned long m_GfiRetryCnt;
-  uint8_t m_GfiTripCnt;
-#endif // GFI
-#ifdef ADVPWR
-  unsigned long m_NoGndTimeout;
-  unsigned long m_NoGndRetryCnt;
-  uint8_t m_NoGndTripCnt;
-#endif // ADVPWR
+
   uint8_t m_bFlags; // ECF_xxx
   uint8_t m_bVFlags; // ECVF_xxx
   THRESH_DATA m_ThreshData;
@@ -366,9 +319,6 @@ class J1772EVSEController {
   time_t m_ElapsedChargeTime;
   time_t m_ElapsedChargeTimePrev;
 
-#ifdef ADVPWR
-  uint8_t doPost();
-#endif // ADVPWR
   void chargingOn();
   void chargingOff();
   uint8_t chargingIsOn() { return m_bVFlags & ECVF_CHARGING_ON; }
@@ -428,24 +378,7 @@ public:
     return (m_bFlags & ECF_VENT_REQ_DISABLED) ? 0 : 1;
   }
   void EnableVentReq(uint8_t tf);
-#ifdef ADVPWR
-  uint8_t GndChkEnabled() { 
-    return (m_bFlags & ECF_GND_CHK_DISABLED) ? 0 : 1;
-  }
-  void EnableGndChk(uint8_t tf);
-  void EnableStuckRelayChk(uint8_t tf);
-  uint8_t StuckRelayChkEnabled() { 
-    return (m_bFlags & ECF_STUCK_RELAY_CHK_DISABLED) ? 0 : 1;
-  }
-  uint8_t AutoSvcLevelEnabled() { return (m_bFlags & ECF_AUTO_SVC_LEVEL_DISABLED) ? 0 : 1; }
-  void EnableAutoSvcLevel(uint8_t tf);
-  void SetNoGndTripped();
-  uint8_t NoGndTripped() { return m_bVFlags & ECVF_NOGND_TRIPPED; }
-#endif // ADVPWR
-#ifdef GFI
-  void SetGfiTripped();
-  uint8_t GfiTripped() { return m_bVFlags & ECVF_GFI_TRIPPED; }
-#endif // GFI
+
   uint8_t SerDbgEnabled() { 
     return (m_bFlags & ECF_SERIAL_DBG) ? 1 : 0;
   }
@@ -529,17 +462,6 @@ public:
 };
 
 
-#ifdef ADVPWR
-class GndChkMenu : public Menu {
-public:
-  GndChkMenu();
-  void Init();
-  void Next();
-  Menu *Select();
-};
-
-
-#endif // ADVPWR
 class ResetMenu : public Menu {
 public:
   ResetMenu();
@@ -564,9 +486,6 @@ prog_char g_psDiodeCheck[] PROGMEM = "Diode Check";
 prog_char g_psVentReqChk[] PROGMEM = "Vent Req'd Check";
 prog_char g_psEnabled[] PROGMEM = "enabled";
 prog_char g_psDisabled[] PROGMEM = "disabled";
-#ifdef ADVPWR
-prog_char g_psGndChk[] PROGMEM = "Ground Check";
-#endif // ADVPWR
 prog_char g_psReset[] PROGMEM = "Reset";
 prog_char g_psExit[] PROGMEM = "Exit";
 
@@ -575,9 +494,6 @@ SvcLevelMenu g_SvcLevelMenu;
 MaxCurrentMenu g_MaxCurrentMenu;
 DiodeChkMenu g_DiodeChkMenu;
 VentReqMenu g_VentReqMenu;
-#ifdef ADVPWR
-GndChkMenu g_GndChkMenu;
-#endif // ADVPWR
 ResetMenu g_ResetMenu;
 
 BtnHandler g_BtnHandler;
@@ -597,13 +513,6 @@ CLI g_CLI;
 #endif // SERIALCLI
 
 #ifdef LCD16X2
-#ifdef ADVPWR
-prog_char g_psPwrOn[] PROGMEM = "Power On";
-prog_char g_psSelfTest[] PROGMEM = "Self Test";
-prog_char g_psAutoDetect[] PROGMEM = "Auto Detect";
-prog_char g_psLevel1[] PROGMEM = "Svc Level: L1";
-prog_char g_psLevel2[] PROGMEM = "Svc Level: L2";
-#endif // ADVPWR
 prog_char g_psEvseError[] PROGMEM =  "EVSE ERROR";
 prog_char g_psVentReq[] PROGMEM = "VENT REQUIRED";
 prog_char g_psDiodeChkFailed[] PROGMEM = "DIODE CHK FAILED";
@@ -709,12 +618,6 @@ void CLI::getInput()
          print_P(PSTR("Diode Check: "));
 	println_P(g_EvseController.DiodeCheckEnabled() ? g_psEnabled : g_psDisabled);
 
-#ifdef ADVPWR
-	print_P(PSTR("Ground Check: "));
-	println_P(g_EvseController.GndChkEnabled() ? g_psEnabled : g_psDisabled);
-	print_P(PSTR("Stuck Relay Check: "));
-	println_P(g_EvseController.StuckRelayChkEnabled() ? g_psEnabled : g_psDisabled);
-#endif // ADVPWR           
       } 
       else if ((strcmp_P(m_CLIinstr, PSTR("help")) == 0) || (strcmp_P(m_CLIinstr, PSTR("?")) == 0)){ // string compare
         println_P(PSTR("Help Commands"));
@@ -731,10 +634,6 @@ void CLI::getInput()
 	println_P(PSTR("vntreq on/off - enable/disable vent required state"));
         println_P(PSTR("diochk on/off - enable/disable diode check"));
 
-#ifdef ADVPWR
-	println_P(PSTR("gndchk on/off - turn ground check on/off"));
-	println_P(PSTR("rlychk on/off - turn stuck relay check on/off"));
-#endif // ADVPWR
 	println_P(PSTR("sdbg on/off - turn serial debugging on/off"));
       }
       else if (strncmp_P(m_CLIinstr, PSTR("set "),4) == 0) {
@@ -775,32 +674,6 @@ void CLI::getInput()
 	    println_P(g_psDisabled);
 	  }
 	}
-#ifdef ADVPWR
-	else if (!strncmp_P(p,PSTR("gndchk "),7)) {
-	  p += 7;
-	  print_P(PSTR("ground check "));
-	  if (!strcmp_P(p,g_pson)) {
-	    g_EvseController.EnableGndChk(1);
-	    println_P(g_psEnabled);
-	  }
-	  else {
-	    g_EvseController.EnableGndChk(0);
-	    println_P(g_psDisabled);
-	  }
-	}
-	else if (!strncmp_P(p,PSTR("rlychk "),7)) {
-	  p += 7;
-	  print_P(PSTR("stuck relay check "));
-	  if (!strcmp_P(p,g_pson)) {
-	    g_EvseController.EnableStuckRelayChk(1);
-	    println_P(g_psEnabled);
-	  }
-	  else {
-	    g_EvseController.EnableStuckRelayChk(0);
-	    println_P(g_psDisabled);
-	  }
-	}
-#endif // ADVPWR
 	else if (!strcmp_P(p,PSTR("amp"))){ // string compare
 	  println_P(PSTR("WARNING - DO NOT SET CURRENT HIGHER THAN 80%"));
 	  println_P(PSTR("OF YOUR CIRCUIT BREAKER OR")); 
@@ -1054,30 +927,6 @@ void OnboardDisplay::Update()
 }
 
 
-#ifdef GFI
-
-// interrupt service routing
-void gfi_isr()
-{
-  g_EvseController.SetGfiTripped();
-}
-
-void Gfi::Init()
-{
-  Reset();
-}
-
-//RESET GFI LOGIC
-void Gfi::Reset()
-{
-#ifdef WATCHDOG
-  wdt_reset(); // pat the dog
-#endif // WATCHDOG
-
-  m_GfiFault = 0;
-}
-
-#endif // GFI
 //-- begin J1772Pilot
 
 void J1772Pilot::Init()
@@ -1182,21 +1031,6 @@ void J1772EVSEController::chargingOff()
   m_ChargeOffTimeMS = millis();
 } 
 
-#ifdef GFI
-inline void J1772EVSEController::SetGfiTripped()
-{
-  m_bVFlags |= ECVF_GFI_TRIPPED;
-
-  // this is repeated Update(), but we want to keep latency as low as possible
-  // for safety so we do it here first anyway
-  chargingOff(); // turn off charging current
-  // turn off the pilot
-  m_Pilot.SetState(PILOT_STATE_N12);
-
-  m_Gfi.SetFault();
-  // the rest of the logic will be handled in Update()
-}
-#endif // GFI
 
 void J1772EVSEController::EnableDiodeCheck(uint8_t tf)
 {
@@ -1217,40 +1051,6 @@ void J1772EVSEController::EnableVentReq(uint8_t tf)
     m_bFlags |= ECF_VENT_REQ_DISABLED;
   }
 }
-
-#ifdef ADVPWR
-void J1772EVSEController::EnableGndChk(uint8_t tf)
-{
-  if (tf) {
-    m_bFlags &= ~ECF_GND_CHK_DISABLED;
-  }
-  else {
-    m_bFlags |= ECF_GND_CHK_DISABLED;
-  }
-}
-
-void J1772EVSEController::EnableStuckRelayChk(uint8_t tf)
-{
-  if (tf) {
-    m_bFlags &= ~ECF_STUCK_RELAY_CHK_DISABLED;
-  }
-  else {
-    m_bFlags |= ECF_STUCK_RELAY_CHK_DISABLED;
-  }
-}
-
-void J1772EVSEController::EnableAutoSvcLevel(uint8_t tf)
-{
-  if (tf) {
-    m_bFlags &= ~ECF_AUTO_SVC_LEVEL_DISABLED;
-  }
-  else {
-    m_bFlags |= ECF_AUTO_SVC_LEVEL_DISABLED;
-  }
-}
-
-
-#endif // ADVPWR
 
 void J1772EVSEController::EnableSerDbg(uint8_t tf)
 {
@@ -1326,68 +1126,10 @@ void J1772EVSEController::SetSvcLevel(uint8_t svclvl)
   SetCurrentCapacity(ampacity);
 }
 
-#ifdef ADVPWR
-uint8_t J1772EVSEController::doPost()
-{
-  int PS1state,PS2state;
-  uint8_t svclvl = 0;
-
-  m_Pilot.SetState(PILOT_STATE_P12); //check to see if EV is plugged in - write early so it will stabilize before reading.
-  g_OBD.SetRedLed(HIGH); 
-#ifdef LCD16X2 //Adafruit RGB LCD
-  g_OBD.LcdMsg_P(g_psPwrOn,g_psSelfTest);
-  
-#endif //Adafruit RGB LCD 
-
-  if (AutoSvcLevelEnabled()) {
-    int reading = analogRead(VOLT_PIN); //read pilot
-    m_Pilot.SetState(PILOT_STATE_N12);
-    if (reading > 0) {              // IF no EV is plugged in its Okay to open the relay the do the L1/L2 and ground Check
-      digitalWrite(CHARGING_PIN, HIGH);
-      delay(500);
-      PS1state = digitalRead(ACLINE1_PIN);
-      PS2state = digitalRead(ACLINE2_PIN);
-      digitalWrite(CHARGING_PIN, LOW);
-
-	if ((PS1state == LOW) && (PS2state == LOW)) {  //L2   
-#ifdef LCD16X2 //Adafruit RGB LCD
-	  g_OBD.LcdMsg_P(g_psAutoDetect,g_psLevel2);
-	  delay(500);
-#endif //Adafruit RGB LCD
-
-	  svclvl = 2; // L2
-	}  
-	else { // L1
-#ifdef LCD16X2 //Adafruit RGB LCD
-	 g_OBD.LcdMsg_P(g_psAutoDetect,g_psLevel1);
-	 delay(500);
-#endif //Adafruit RGB LCD
-	  svclvl = 1; // L1
-	}
-      }  
-  }
-//    } 
-//  }
-  
-  g_OBD.SetRedLed(LOW); // Red LED off for ADVPWR
-
-  m_Pilot.SetState(PILOT_STATE_P12);
-  
-
-  return svclvl;
-}
-#endif // ADVPWR
 
 void J1772EVSEController::Init()
 {
   pinMode(CHARGING_PIN,OUTPUT);
-
-#ifdef ADVPWR
-  pinMode(ACLINE1_PIN, INPUT);
-  pinMode(ACLINE2_PIN, INPUT);
-  digitalWrite(ACLINE1_PIN, HIGH); // enable pullup
-  digitalWrite(ACLINE2_PIN, HIGH); // enable pullup
-#endif // ADVPWR
 
   chargingOff();
 
@@ -1406,32 +1148,11 @@ void J1772EVSEController::Init()
 
   m_bVFlags = ECVF_DEFAULT;
 
-#ifdef GFI
-  m_GfiRetryCnt = 0;
-  m_GfiTripCnt = 0;
-#endif // GFI
-#ifdef ADVPWR
-  m_NoGndRetryCnt = 0;
-  m_NoGndTripCnt = 0;
-#endif // ADVPWR
-
   m_EvseState = EVSE_STATE_UNKNOWN;
   m_PrevEvseState = EVSE_STATE_UNKNOWN;
 
 
-#ifdef ADVPWR  // Power on Self Test for Advanced Power Supply
-  uint8_t psvclvl = doPost(); // auto detect service level overrides any saved values
-  if (psvclvl != 0) {
-    svclvl = psvclvl;
-  }
-#endif // ADVPWR  
-
   SetSvcLevel(svclvl);
-
-#ifdef GFI
-  m_Gfi.Init();
-#endif // GFI
-
 
   g_OBD.SetGreenLed(LOW);
 }
@@ -1459,80 +1180,6 @@ void J1772EVSEController::Update()
 
   int plow;
   int phigh;
-
-#ifdef ADVPWR
-  int PS1state = digitalRead(ACLINE1_PIN);
-  int PS2state = digitalRead(ACLINE2_PIN);
-
- if (chargingIsOn()) { // ground check - can only test when relay closed
-    if (GndChkEnabled()) {
-      if (((millis()-m_ChargeStartTimeMS) > GROUND_CHK_DELAY) && (PS1state == HIGH) && (PS2state == HIGH)) {
-	// bad ground
-	
-	tmpevsestate = EVSE_STATE_NO_GROUND;
-	m_EvseState = EVSE_STATE_NO_GROUND;
-	
-	chargingOff(); // open the relay
-
-	if (m_NoGndTripCnt < 255) {
-	  m_NoGndTripCnt++;
-	}
-	m_NoGndTimeout = millis() + GFI_TIMEOUT;
-
-	nofault = 0;
-      }
-    }
-  }
-  else { // !chargingIsOn() - relay open
-    if (prevevsestate == EVSE_STATE_NO_GROUND) {
-      if ((m_NoGndRetryCnt < GFI_RETRY_COUNT) &&
-	  (millis() >= m_NoGndTimeout)) {
-	m_NoGndRetryCnt++;
-      }
-      else {
-	tmpevsestate = EVSE_STATE_NO_GROUND;
-	m_EvseState = EVSE_STATE_NO_GROUND;
-	
-	nofault = 0;
-      }
-    }
-    else if (StuckRelayChkEnabled()) {    // stuck relay check - can test only when relay open
-      if (((prevevsestate == EVSE_STATE_STUCK_RELAY) || ((millis()-m_ChargeOffTimeMS) > STUCK_RELAY_DELAY)) &&
-	  ((PS1state == LOW) || (PS2state == LOW))) {
-	// stuck relay
-	
-	tmpevsestate = EVSE_STATE_STUCK_RELAY;
-	m_EvseState = EVSE_STATE_STUCK_RELAY;
-	
-	nofault = 0;
-      }
-    }
-  }
-#endif // ADVPWR
-   
-#ifdef GFI
-  if (m_Gfi.Fault()) {
-    tmpevsestate = EVSE_STATE_GFCI_FAULT;
-    m_EvseState = EVSE_STATE_GFCI_FAULT;
-
-    if (m_GfiRetryCnt < GFI_RETRY_COUNT) {
-      if (prevevsestate != EVSE_STATE_GFCI_FAULT) {
-	if (m_GfiTripCnt < 255) {
-	  m_GfiTripCnt++;
-	}
- 	m_GfiRetryCnt = 0;
-	m_GfiTimeout = millis() + GFI_TIMEOUT;
-      }
-      else if (millis() >= m_GfiTimeout) {
-	m_Gfi.Reset();
-	m_GfiRetryCnt++;
-	m_GfiTimeout = millis() + GFI_TIMEOUT;
-      }
-    }
-
-    nofault = 0;
-  }
-#endif // GFI
 
   if (nofault) {
     if ((prevevsestate == EVSE_STATE_GFCI_FAULT) ||
@@ -1827,11 +1474,6 @@ void SetupMenu::Next()
   if (++m_CurIdx >= 7) {
     m_CurIdx = 0;
   }
-#ifndef ADVPWR
-  if (m_CurIdx == 4) {
-    m_CurIdx++;
-  }
-#endif // !ADVPWR
 
   const prog_char *title;
   switch(m_CurIdx) {
@@ -1847,11 +1489,6 @@ void SetupMenu::Next()
   case 3:
     title = g_VentReqMenu.m_Title;
     break;
-#ifdef ADVPWR
-  case 4:
-    title = g_GndChkMenu.m_Title;
-    break;
-#endif // ADVPWR
   case 5:
     title = g_ResetMenu.m_Title;
     break;
@@ -1876,11 +1513,6 @@ Menu *SetupMenu::Select()
   else if (m_CurIdx == 3) {
     return &g_VentReqMenu;
   }
-#ifdef ADVPWR
-  else if (m_CurIdx == 4) {
-    return &g_GndChkMenu;
-  }
-#endif // ADVPWR
   else if (m_CurIdx == 5) {
     return &g_ResetMenu;
   }
@@ -1889,15 +1521,7 @@ Menu *SetupMenu::Select()
   }
 }
 
-#ifdef ADVPWR
-#define SVC_LVL_MNU_ITEMCNT 3
-#else
-#define SVC_LVL_MNU_ITEMCNT 2
-#endif // ADVPWR
 const char *g_SvcLevelMenuItems[] = {
-#ifdef ADVPWR
-  "Auto",
-#endif // ADVPWR
   "Level 1",
   "Level 2"
 };
@@ -1911,16 +1535,6 @@ SvcLevelMenu::SvcLevelMenu()
 void SvcLevelMenu::Init()
 {
   g_OBD.LcdPrint_P(0,m_Title);
-#ifdef ADVPWR
-  if (g_EvseController.AutoSvcLevelEnabled()) {
-    m_CurIdx = 0;
-  }
-  else {
-    m_CurIdx = g_EvseController.GetCurSvcLevel();
-  }
-#else
-  m_CurIdx = (g_EvseController.GetCurSvcLevel() == 1) ? 0 : 1;
-#endif // ADVPWR
   sprintf(g_sTmp,"+%s",g_SvcLevelMenuItems[m_CurIdx]);
   g_OBD.LcdPrint(1,g_sTmp);
 }
@@ -1940,17 +1554,6 @@ void SvcLevelMenu::Next()
 
 Menu *SvcLevelMenu::Select()
 {
-#ifdef ADVPWR
-  if (m_CurIdx == 0) {
-    g_EvseController.EnableAutoSvcLevel(1);
-  }
-  else {
-    g_EvseController.SetSvcLevel(m_CurIdx);
-    g_EvseController.EnableAutoSvcLevel(0);
-  }
-#else
-  g_EvseController.SetSvcLevel(m_CurIdx+1);
-#endif // ADVPWR
   g_OBD.LcdPrint(0,1,"+");
   g_OBD.LcdPrint(g_SvcLevelMenuItems[m_CurIdx]);
 
@@ -2101,49 +1704,6 @@ Menu *VentReqMenu::Select()
   return &g_SetupMenu;
 }
 
-#ifdef ADVPWR
-GndChkMenu::GndChkMenu()
-{
-  m_Title = g_psGndChk;
-}
-
-void GndChkMenu::Init()
-{
-  g_OBD.LcdPrint_P(0,m_Title);
-  m_CurIdx = g_EvseController.GndChkEnabled() ? 0 : 1;
-  sprintf(g_sTmp,"+%s",g_YesNoMenuItems[m_CurIdx]);
-  g_OBD.LcdPrint(1,g_sTmp);
-}
-
-void GndChkMenu::Next()
-{
-  if (++m_CurIdx >= 2) {
-    m_CurIdx = 0;
-  }
-  g_OBD.LcdClearLine(1);
-  g_OBD.LcdSetCursor(0,1);
-  uint8_t dce = g_EvseController.GndChkEnabled();
-  if ((dce && !m_CurIdx) || (!dce && m_CurIdx)) {
-    g_OBD.LcdPrint("+");
-  }
-  g_OBD.LcdPrint(g_YesNoMenuItems[m_CurIdx]);
-}
-
-Menu *GndChkMenu::Select()
-{
-  g_OBD.LcdPrint(0,1,"+");
-  g_OBD.LcdPrint(g_YesNoMenuItems[m_CurIdx]);
-
-  g_EvseController.EnableGndChk((m_CurIdx == 0) ? 1 : 0);
-
-  EEPROM.write(EOFS_FLAGS,g_EvseController.GetFlags());
-
-  delay(500);
-
-  return &g_SetupMenu;
-}
-#endif // ADVPWR
-
 ResetMenu::ResetMenu()
 {
   m_Title = g_psReset;
@@ -2256,11 +1816,6 @@ void setup()
   wdt_disable();
   
   Serial.begin(SERIAL_BAUD);
-
-#ifdef GFI
-  // GFI triggers on rising edge
-  attachInterrupt(GFI_INTERRUPT,gfi_isr,RISING);
-#endif // GFI
 
   EvseReset();
 
