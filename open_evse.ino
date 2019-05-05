@@ -41,12 +41,10 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 // enable watchdog timer
 //#define WATCHDOG
 
+#define LCD16X2
 
 // serial port command line
 #define SERIALCLI
-
-//Adafruit RGBLCD
-//#define RGBLCD
 
 // Adafruit LCD backpack in I2C mode
 #define I2CLCD
@@ -61,17 +59,10 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 
 #ifdef BTN_MENU
 // use Adafruit RGB LCD select button
-#ifdef RGBLCD
-#define ADAFRUIT_BTN
-#endif // RGBLCD
 #endif // BTN_MENU
-
 
 //-- end features
 
-#if defined(RGBLCD) || defined(I2CLCD)
-#define LCD16X2
-#endif // RGBLCD || I2CLCD
 
 //-- begin configuration
 
@@ -118,20 +109,11 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 #define GREEN 0x2
 #define BLUE 0x6
 
-#ifdef RGBLCD //Adafruit RGB LCD
-#include <Adafruit_MCP23017.h>
-#include <Adafruit_RGBLCDShield.h>
-
-#endif //Adafruit RGB LCD
-
-#ifdef I2CLCD
 // N.B. must use Adafruit's LiquidCrystal library
 // I had to rename it to AdaLiquidCrystal because it was causing compile
 // errors in my AT90CANxxx projects.
 // unzip AdaLiquidCrystal.zip into your sketchbook/libraries folder
-#include <AdaLiquidCrystal.h>
-#define LCD_I2C_ADDR 0 // for adafruit LCD backpack
-#endif // I2CLCD
+#include <LiquidCrystal.h>
 
 
 #define BTN_PIN A3 // button sensing pin
@@ -176,14 +158,8 @@ char *g_BlankLine = "                ";
 #endif // LCD16X2
 
 class OnboardDisplay 
-
 {
-#ifdef RGBLCD //Adafruit RGB LCD
-Adafruit_RGBLCDShield m_Lcd;
-#endif //Adafruit RGB LCD
-#ifdef I2CLCD
-AdaLiquidCrystal m_Lcd; 
-#endif // I2CLCD
+  LiquidCrystal m_Lcd; 
   char *m_strBuf;
 
 
@@ -224,9 +200,7 @@ public:
   void LcdMsg(const char *l1,const char *l2);
   void LcdMsg_P(const prog_char *l1,const prog_char *l2);
   void LcdSetBacklightColor(uint8_t c) {
-#ifdef RGBLCD
-    m_Lcd.setBacklight(c);
-#endif // RGBLCD
+
   }
 #ifdef RGBLCD
   uint8_t readButtons() { return m_Lcd.readButtons(); }
@@ -825,86 +799,60 @@ void OnboardDisplay::Update()
     case EVSE_STATE_A: // not connected
       SetGreenLed(HIGH);
       SetRedLed(LOW);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(GREEN);
       sprintf(g_sTmp,g_sRdyLAstr,(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
       LcdPrint(0,g_sTmp);
       LcdPrint_P(1,g_psEvNotConnected);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
     case EVSE_STATE_B: // connected/not charging
       SetGreenLed(HIGH);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(YELLOW);
       sprintf(g_sTmp,g_sRdyLAstr,(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
       LcdPrint(0,g_sTmp);
       LcdPrint_P(1,g_psEvConnected);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
     case EVSE_STATE_C: // charging
       SetGreenLed(LOW);
       SetRedLed(LOW);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(BLUE);
       sprintf(g_sTmp,"Charging  L%d:%dA",(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
       LcdPrint(0,g_sTmp);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is on
       break;
     case EVSE_STATE_D: // vent required
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(RED);
       LcdMsg_P(g_psEvseError,g_psVentReq);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
     case EVSE_STATE_DIODE_CHK_FAILED:
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(RED);
       LcdMsg_P(g_psEvseError,g_psDiodeChkFailed);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
     case EVSE_STATE_GFCI_FAULT:
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(RED);
       LcdMsg_P(g_psEvseError,g_psGfciFault);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
      case EVSE_STATE_NO_GROUND:
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(RED);
       LcdMsg_P(g_psEvseError,g_psNoGround);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
      case EVSE_STATE_STUCK_RELAY:
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-      #ifdef LCD16X2 //Adafruit RGB LCD
-      LcdSetBacklightColor(RED);
       LcdMsg_P(g_psEvseError,g_psEStuckRelay);
-      #endif //Adafruit RGB LCD
       // n.b. blue LED is off
       break;
     case EVSE_STATE_DISABLED:
       SetGreenLed(LOW);
       SetRedLed(HIGH);
-#ifdef LCD16X2
       LcdPrint_P(0,g_psStopped);
-#endif // LCD16X2
       break;
     default:
       SetGreenLed(LOW);
@@ -912,7 +860,6 @@ void OnboardDisplay::Update()
       // n.b. blue LED is off
     }
   }
-#ifdef LCD16X2
   if (curstate == EVSE_STATE_C) {
     time_t elapsedTime = g_EvseController.GetElapsedChargeTime();
     if (elapsedTime != g_EvseController.GetElapsedChargeTimePrev()) {   
@@ -923,7 +870,6 @@ void OnboardDisplay::Update()
       LcdPrint(1,g_sTmp);
     }
   }
-#endif
 }
 
 
