@@ -28,13 +28,10 @@
 #include <pins_arduino.h>
 #include <Wire.h>
 #include <Time.h>
-#if defined(ARDUINO) && (ARDUINO >= 100)
 #include "Arduino.h"
-#else
-#include "WProgram.h" // shouldn't need this but arduino sometimes messes up and puts inside an #ifdef
-#endif // ARDUINO
+#include <LiquidCrystal.h>
 
-prog_char VERSTR[] PROGMEM = "1.0.0";
+const char VERSTR[] PROGMEM = "1.0.0";
 
 //-- begin features
 
@@ -109,11 +106,7 @@ prog_char VERSTR[] PROGMEM = "1.0.0";
 #define GREEN 0x2
 #define BLUE 0x6
 
-// N.B. must use Adafruit's LiquidCrystal library
-// I had to rename it to AdaLiquidCrystal because it was causing compile
-// errors in my AT90CANxxx projects.
-// unzip AdaLiquidCrystal.zip into your sketchbook/libraries folder
-#include <LiquidCrystal.h>
+
 
 
 #define BTN_PIN A3 // button sensing pin
@@ -139,11 +132,11 @@ public:
   void println(char *s) { 
     Serial.println(s); 
   }
-  void println_P(prog_char *s);
+  void println_P(char *s);
   void print(char *s) { 
     Serial.print(s); 
   }
-  void print_P(prog_char *s);
+  void print_P(char *s);
   void printlnn();
   void flush() { 
     Serial.flush(); 
@@ -175,14 +168,14 @@ public:
   void LcdPrint(const char *s) { 
     m_Lcd.print(s); 
   }
-  void LcdPrint_P(const prog_char *s);
+  void LcdPrint_P(const char *s);
   void LcdPrint(int y,const char *s);
-  void LcdPrint_P(int y,const prog_char *s);
+  void LcdPrint_P(int y,const char *s);
   void LcdPrint(int x,int y,const char *s) { 
     m_Lcd.setCursor(x,y);
     m_Lcd.print(s); 
   }
-  void LcdPrint_P(int x,int y,const prog_char *s);
+  void LcdPrint_P(int x,int y,const char *s);
   void LcdPrint(int i) { 
     m_Lcd.print(i); 
   }
@@ -198,7 +191,7 @@ public:
   }
 
   void LcdMsg(const char *l1,const char *l2);
-  void LcdMsg_P(const prog_char *l1,const prog_char *l2);
+  void LcdMsg_P(const char *l1,const char *l2);
   void LcdSetBacklightColor(uint8_t c) {
 
   }
@@ -379,7 +372,7 @@ public:
 typedef enum {MS_NONE,MS_SETUP,MS_SVC_LEVEL,MS_MAX_CURRENT,MS_RESET} MENU_STATE;
 class Menu {
 public:
-  prog_char *m_Title;
+  char *m_Title;
   uint8_t m_CurIdx;
   
   void init(const char *firstitem);
@@ -453,15 +446,15 @@ public:
   void ChkBtn();
 };
 
-prog_char g_psSetup[] PROGMEM = "Setup";
-prog_char g_psSvcLevel[] PROGMEM = "Service Level";
-prog_char g_psMaxCurrent[] PROGMEM = "Max Current";
-prog_char g_psDiodeCheck[] PROGMEM = "Diode Check";
-prog_char g_psVentReqChk[] PROGMEM = "Vent Req'd Check";
-prog_char g_psEnabled[] PROGMEM = "enabled";
-prog_char g_psDisabled[] PROGMEM = "disabled";
-prog_char g_psReset[] PROGMEM = "Reset";
-prog_char g_psExit[] PROGMEM = "Exit";
+const char g_psSetup[] PROGMEM = "Setup";
+const char g_psSvcLevel[] PROGMEM = "Service Level";
+const char g_psMaxCurrent[] PROGMEM = "Max Current";
+const char g_psDiodeCheck[] PROGMEM = "Diode Check";
+const char g_psVentReqChk[] PROGMEM = "Vent Req'd Check";
+const char g_psEnabled[] PROGMEM = "enabled";
+const char g_psDisabled[] PROGMEM = "disabled";
+const char g_psReset[] PROGMEM = "Reset";
+const char g_psExit[] PROGMEM = "Exit";
 
 SetupMenu g_SetupMenu;
 SvcLevelMenu g_SvcLevelMenu;
@@ -487,15 +480,15 @@ CLI g_CLI;
 #endif // SERIALCLI
 
 #ifdef LCD16X2
-prog_char g_psEvseError[] PROGMEM =  "EVSE ERROR";
-prog_char g_psVentReq[] PROGMEM = "VENT REQUIRED";
-prog_char g_psDiodeChkFailed[] PROGMEM = "DIODE CHK FAILED";
-prog_char g_psGfciFault[] PROGMEM = "GFCI FAULT";
-prog_char g_psNoGround[] PROGMEM = "NO GROUND";
-prog_char g_psEStuckRelay[] PROGMEM = "STUCK RELAY";
-prog_char g_psStopped[] PROGMEM = "Stopped";
-prog_char g_psEvConnected[] PROGMEM = "EV Connected";
-prog_char g_psEvNotConnected[] PROGMEM = "EV Not Connected";
+const char g_psEvseError[] PROGMEM =  "EVSE ERROR";
+const char g_psVentReq[] PROGMEM = "VENT REQUIRED";
+const char g_psDiodeChkFailed[] PROGMEM = "DIODE CHK FAILED";
+const char g_psGfciFault[] PROGMEM = "GFCI FAULT";
+const char g_psNoGround[] PROGMEM = "NO GROUND";
+const char g_psEStuckRelay[] PROGMEM = "STUCK RELAY";
+const char g_psStopped[] PROGMEM = "Stopped";
+const char g_psEvConnected[] PROGMEM = "EV Connected";
+const char g_psEvNotConnected[] PROGMEM = "EV Not Connected";
 #endif // LCD16X2
 
 //-- end global variables
@@ -554,7 +547,7 @@ void CLI::printlnn()
   println("");
 }
 
-prog_char g_pson[] PROGMEM = "on";
+const char g_pson[] PROGMEM = "on";
 void CLI::getInput()
 {
   int currentreading;
@@ -690,13 +683,13 @@ void CLI::getInput()
   }
 }
 
-void CLI::println_P(prog_char *s)
+void CLI::println_P(char *s)
 {
   strncpy_P(m_strBuf,s,m_strBufLen);
   println(m_strBuf);
 }
 
-void CLI::print_P(prog_char *s)
+void CLI::print_P(char *s)
 {
   strncpy_P(m_strBuf,s,m_strBufLen);
   print(m_strBuf);
@@ -704,10 +697,7 @@ void CLI::print_P(prog_char *s)
 
 #endif // SERIALCLI
 
-OnboardDisplay::OnboardDisplay()
-#ifdef I2CLCD
-  : m_Lcd(LCD_I2C_ADDR)
-#endif // I2CLCD
+OnboardDisplay::OnboardDisplay(): m_Lcd(1,2,3,4,5,6,7)
 {
   m_strBuf = g_sTmp;
 } 
@@ -745,25 +735,25 @@ void OnboardDisplay::SetRedLed(uint8_t state)
 }
 
 #ifdef LCD16X2
-void OnboardDisplay::LcdPrint_P(const prog_char *s)
+void OnboardDisplay::LcdPrint_P(const char *s)
 {
   strcpy_P(m_strBuf,s);
   m_Lcd.print(m_strBuf);
 }
 
-void OnboardDisplay::LcdPrint_P(int y,const prog_char *s)
+void OnboardDisplay::LcdPrint_P(int y,const char *s)
 {
   strcpy_P(m_strBuf,s);
   LcdPrint(y,m_strBuf);
 }
 
-void OnboardDisplay::LcdPrint_P(int x,int y,const prog_char *s)
+void OnboardDisplay::LcdPrint_P(int x,int y,const char *s)
 {
   strcpy_P(m_strBuf,s);
   LcdPrint(x,y,m_strBuf);
 }
 
-void OnboardDisplay::LcdMsg_P(const prog_char *l1,const prog_char *l2)
+void OnboardDisplay::LcdMsg_P(const char *l1,const char *l2)
 {
   LcdPrint_P(0,l1);
   LcdPrint_P(1,l2);
@@ -1421,7 +1411,7 @@ void SetupMenu::Next()
     m_CurIdx = 0;
   }
 
-  const prog_char *title;
+  const char *title;
   switch(m_CurIdx) {
   case 0:
     title = g_SvcLevelMenu.m_Title;
@@ -1811,4 +1801,3 @@ void loop()
 
 
 }
-
