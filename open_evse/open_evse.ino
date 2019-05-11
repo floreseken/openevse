@@ -46,9 +46,6 @@ const char VERSTR[] PROGMEM = "1.0.0";
 // serial port command line
 #define SERIALCLI
 
-// Adafruit LCD backpack in I2C mode
-#define I2CLCD
-
 // single button menus (needs LCD enabled)
 // connect an SPST button between BTN_PIN and GND via a 2K resistor or enable ADAFRUIT_BTN to use the 
 // select button of the Adafruit RGB LCD 
@@ -57,17 +54,12 @@ const char VERSTR[] PROGMEM = "1.0.0";
 // When within menus, short press cycles menu items, long press selects and exits current submenu
 #define BTN_MENU
 
-#ifdef BTN_MENU
-// use Adafruit RGB LCD select button
-#endif // BTN_MENU
-
 //-- end features
-
 
 //-- begin configuration
 
 // n.b. DEFAULT_SERVICE_LEVEL is ignored if ADVPWR defined, since it's autodetected
-#define DEFAULT_SERVICE_LEVEL 1 // 1=L1, 2=L2
+#define DEFAULT_SERVICE_LEVEL 2 // 1=L1, 2=L2
 
 // current capacity in amps
 #define DEFAULT_CURRENT_CAPACITY_L1 12
@@ -83,10 +75,8 @@ const char VERSTR[] PROGMEM = "1.0.0";
 //J1772EVSEController
 //#define CURRENT_PIN 0 // analog current reading pin A0
 #define VOLT_PIN 1 // analog voltage reading pin A1
-#define ACLINE1_PIN 3 // TEST PIN 1 for L1/L2, ground and stuck relay
-#define ACLINE2_PIN 4 // TEST PIN 2 for L1/L2, ground and stuck relay
 #define RED_LED_PIN 5 // Digital pin
-#define CHARGING_PIN 8 // digital Charging LED and Relay Trigger pin
+#define CHARGING_PIN 3 // digital Charging LED and Relay Trigger pin
 #define PILOT_PIN 10 // n.b. PILOT_PIN *MUST* be digial 10 because initWave() assumes it
 #define GREEN_LED_PIN 13 // Digital pin
 
@@ -699,7 +689,7 @@ void CLI::print_P(char *s)
 
 #endif // SERIALCLI
 
-OnboardDisplay::OnboardDisplay(): m_Lcd(1,2,3,4,5,6,7)
+OnboardDisplay::OnboardDisplay(): m_Lcd(13,12,11,7,9,8)
 {
   m_strBuf = g_sTmp;
 } 
