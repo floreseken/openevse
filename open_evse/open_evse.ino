@@ -1,5 +1,5 @@
 #include <Time.h>
-#include <TimeLib.h>
+#include "src/Time-1.5.0/TimeLib.h"
 
 // -*- C++ -*-
 /*
@@ -30,7 +30,7 @@
 #include <avr/pgmspace.h>
 #include <pins_arduino.h>
 #include <Wire.h>
-#include <Time.h>
+// #include <Time.h>
 #include "Arduino.h"
 #include <LiquidCrystal.h>
 
