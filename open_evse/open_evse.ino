@@ -1,5 +1,4 @@
-#include <Time.h>
-#include "src/Time-1.5.0/TimeLib.h"
+
 
 // -*- C++ -*-
 /*
@@ -30,7 +29,8 @@
 #include <avr/pgmspace.h>
 #include <pins_arduino.h>
 #include <Wire.h>
-// #include <Time.h>
+#include <Time.h>
+#include "src/Time-1.5.0/TimeLib.h"
 #include "Arduino.h"
 #include <LiquidCrystal.h>
 
@@ -75,10 +75,8 @@ const char VERSTR[] PROGMEM = "1.0.0";
 //J1772EVSEController
 //#define CURRENT_PIN 0 // analog current reading pin A0
 #define VOLT_PIN 1 // analog voltage reading pin A1
-#define RED_LED_PIN 5 // Digital pin
 #define CHARGING_PIN 3 // digital Charging LED and Relay Trigger pin
 #define PILOT_PIN 10 // n.b. PILOT_PIN *MUST* be digial 10 because initWave() assumes it
-#define GREEN_LED_PIN 13 // Digital pin
 
 #define SERIAL_BAUD 38400
 
@@ -137,22 +135,16 @@ public:
   uint8_t getInt();
 };
 
-#ifdef LCD16X2
 const char *g_BlankLine = "                ";
-#endif // LCD16X2
-
 class OnboardDisplay 
 {
   LiquidCrystal m_Lcd; 
   char *m_strBuf;
 
-
 public:
   OnboardDisplay();
   void Init();
-  void SetGreenLed(uint8_t state);
-  void SetRedLed(uint8_t state);
-#ifdef LCD16X2
+
   void LcdBegin(int x,int y) { 
     m_Lcd.begin(x,y); 
   }
@@ -186,10 +178,6 @@ public:
   void LcdSetBacklightColor(uint8_t c) {
 
   }
-#ifdef RGBLCD
-  uint8_t readButtons() { return m_Lcd.readButtons(); }
-#endif // RGBLCD
-#endif // LCD16X2
 
   void Update();
 };
@@ -470,7 +458,6 @@ OnboardDisplay g_OBD;
 CLI g_CLI;
 #endif // SERIALCLI
 
-#ifdef LCD16X2
 const char g_psEvseError[] PROGMEM =  "EVSE ERROR";
 const char g_psVentReq[] PROGMEM = "VENT REQUIRED";
 const char g_psDiodeChkFailed[] PROGMEM = "DIODE CHK FAILED";
@@ -480,7 +467,6 @@ const char g_psEStuckRelay[] PROGMEM = "STUCK RELAY";
 const char g_psStopped[] PROGMEM = "Stopped";
 const char g_psEvConnected[] PROGMEM = "EV Connected";
 const char g_psEvNotConnected[] PROGMEM = "EV Not Connected";
-#endif // LCD16X2
 
 //-- end global variables
 
@@ -694,12 +680,6 @@ OnboardDisplay::OnboardDisplay(): m_Lcd(13,12,11,7,9,8)
 
 void OnboardDisplay::Init()
 {
-  pinMode (GREEN_LED_PIN, OUTPUT);
-  pinMode (RED_LED_PIN, OUTPUT);
-
-  SetGreenLed(LOW);
-  SetRedLed(LOW);
-  
   LcdBegin(16, 2);
  
   LcdPrint_P(0,PSTR("Open EVSE       "));
@@ -710,16 +690,6 @@ void OnboardDisplay::Init()
   delay(500);
 }
 
-
-void OnboardDisplay::SetGreenLed(uint8_t state)
-{
-  digitalWrite(GREEN_LED_PIN,state);
-}
-
-void OnboardDisplay::SetRedLed(uint8_t state)
-{
-  digitalWrite(RED_LED_PIN,state);
-}
 
 void OnboardDisplay::LcdPrint_P(const char *s)
 {
@@ -744,7 +714,6 @@ void OnboardDisplay::LcdMsg_P(const char *l1,const char *l2)
   LcdPrint_P(0,l1);
   LcdPrint_P(1,l2);
 }
-
 
 // print at (0,y), filling out the line with trailing spaces
 void OnboardDisplay::LcdPrint(int y,const char *s)
@@ -773,67 +742,26 @@ void OnboardDisplay::Update()
   if (g_EvseController.StateTransition()) {
     switch(curstate) {
     case EVSE_STATE_A: // not connected
-      SetGreenLed(HIGH);
-      SetRedLed(LOW);
       sprintf(g_sTmp,g_sRdyLAstr,(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
       LcdPrint(0,g_sTmp);
       LcdPrint_P(1,g_psEvNotConnected);
-      // n.b. blue LED is off
       break;
     case EVSE_STATE_B: // connected/not charging
-      SetGreenLed(HIGH);
-      SetRedLed(HIGH);
       sprintf(g_sTmp,g_sRdyLAstr,(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
       LcdPrint(0,g_sTmp);
       LcdPrint_P(1,g_psEvConnected);
-      // n.b. blue LED is off
       break;
     case EVSE_STATE_C: // charging
-      SetGreenLed(LOW);
-      SetRedLed(LOW);
       sprintf(g_sTmp,"Charging  L%d:%dA",(int)svclvl,(int)g_EvseController.GetCurrentCapacity());
+      Serial.println(g_sTmp);
       LcdPrint(0,g_sTmp);
-      // n.b. blue LED is on
       break;
     case EVSE_STATE_D: // vent required
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
       LcdMsg_P(g_psEvseError,g_psVentReq);
-      // n.b. blue LED is off
-      break;
-    case EVSE_STATE_DIODE_CHK_FAILED:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
-      LcdMsg_P(g_psEvseError,g_psDiodeChkFailed);
-      // n.b. blue LED is off
-      break;
-    case EVSE_STATE_GFCI_FAULT:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
-      LcdMsg_P(g_psEvseError,g_psGfciFault);
-      // n.b. blue LED is off
-      break;
-     case EVSE_STATE_NO_GROUND:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
-      LcdMsg_P(g_psEvseError,g_psNoGround);
-      // n.b. blue LED is off
-      break;
-     case EVSE_STATE_STUCK_RELAY:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
-      LcdMsg_P(g_psEvseError,g_psEStuckRelay);
-      // n.b. blue LED is off
       break;
     case EVSE_STATE_DISABLED:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
       LcdPrint_P(0,g_psStopped);
       break;
-    default:
-      SetGreenLed(LOW);
-      SetRedLed(HIGH);
-      // n.b. blue LED is off
     }
   }
   if (curstate == EVSE_STATE_C) {
@@ -843,7 +771,6 @@ void OnboardDisplay::Update()
       int m = minute(elapsedTime);
       int s = second(elapsedTime);
       sprintf(g_sTmp,"%02d:%02d:%02d",h,m,s);
-      //Serial.println(g_sTmp);
       LcdPrint(1,g_sTmp);
     }
   }
@@ -1077,7 +1004,6 @@ void J1772EVSEController::Init()
 
   SetSvcLevel(svclvl);
 
-  g_OBD.SetGreenLed(LOW);
 }
 
 //TABLE A1 - PILOT LINE VOLTAGE RANGES (recommended.. adjust as necessary
