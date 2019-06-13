@@ -109,7 +109,7 @@ const char VERSTR[] PROGMEM = "1.0.0";
 
 //-- begin class definitions
 
-#ifdef SERIALCLI
+
 #define CLI_BUFLEN 16
 class CLI {
   char m_CLIinstr[CLI_BUFLEN]; // CLI byte being read in
@@ -136,7 +136,6 @@ public:
   void getInput();
   uint8_t getInt();
 };
-#endif // SERIALCLI
 
 #ifdef LCD16X2
 const char *g_BlankLine = "                ";
@@ -494,7 +493,6 @@ void SaveSettings()
   EEPROM.write(EOFS_FLAGS,g_EvseController.GetFlags());
 }
 
-#ifdef SERIALCLI
 CLI::CLI()
 {
   m_CLIstrCount = 0; 
@@ -687,7 +685,6 @@ void CLI::print_P(char *s)
   print(m_strBuf);
 }
 
-#endif // SERIALCLI
 
 OnboardDisplay::OnboardDisplay(): m_Lcd(13,12,11,7,9,8)
 {
@@ -703,7 +700,6 @@ void OnboardDisplay::Init()
   SetGreenLed(LOW);
   SetRedLed(LOW);
   
-#ifdef LCD16X2 //Adafruit RGB LCD  
   LcdBegin(16, 2);
  
   LcdPrint_P(0,PSTR("Open EVSE       "));
@@ -712,7 +708,6 @@ void OnboardDisplay::Init()
   LcdPrint_P(VERSTR);
   LcdPrint_P(PSTR("   "));
   delay(500);
-#endif // LCD16X2
 }
 
 
@@ -726,7 +721,6 @@ void OnboardDisplay::SetRedLed(uint8_t state)
   digitalWrite(RED_LED_PIN,state);
 }
 
-#ifdef LCD16X2
 void OnboardDisplay::LcdPrint_P(const char *s)
 {
   strcpy_P(m_strBuf,s);
@@ -767,7 +761,7 @@ void OnboardDisplay::LcdMsg(const char *l1,const char *l2)
   LcdPrint(0,l1);
   LcdPrint(1,l2);
 }
-#endif // LCD16X2
+
 
 char g_sRdyLAstr[] = "Ready     L%d:%dA";
 void OnboardDisplay::Update()
@@ -849,6 +843,7 @@ void OnboardDisplay::Update()
       int m = minute(elapsedTime);
       int s = second(elapsedTime);
       sprintf(g_sTmp,"%02d:%02d:%02d",h,m,s);
+      //Serial.println(g_sTmp);
       LcdPrint(1,g_sTmp);
     }
   }
